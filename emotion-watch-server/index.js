@@ -21,16 +21,18 @@ io.on('connection', (socket) => {
   console.log('a user connected:', socket.id)
 
   socket.on('join-room', ({ roomCode, userId }) => {
-    socket.join(roomCode)
-    socket.userId = userId
-    socket.roomCode = roomCode
-    console.log(`User ${userId} joined room: ${roomCode}`)
+  socket.join(roomCode)
+  socket.userId = userId
+  socket.roomCode = roomCode
+  console.log(`User ${userId} joined room: ${roomCode}`)
 
-    // Send existing emotions to the new joiner
-    if (roomEmotions[roomCode]) {
-      socket.emit('room-emotions', { roomEmotions: roomEmotions[roomCode], myUserId: userId })
-    }
-  })
+  socket.to(roomCode).emit('friend-online')
+
+  if (roomEmotions[roomCode]) {
+    socket.emit('room-emotions', { roomEmotions: roomEmotions[roomCode], myUserId: userId })
+  }
+})
+
 
  socket.on('my-emotion', ({ emotion, roomCode, userId }) => {
   console.log(`Emotion received in room ${roomCode} from ${userId}:`, emotion.name)
@@ -39,11 +41,14 @@ io.on('connection', (socket) => {
   socket.to(roomCode).emit('friend-emotion', emotion)
 })
 
-  socket.on('disconnect', () => {
-    console.log('user disconnected:', socket.id)
-  })
+ socket.on('disconnect', () => {
+  console.log('user disconnected:', socket.id)
+  if (socket.roomCode) {
+    socket.to(socket.roomCode).emit('friend-offline')
+  }
 })
-
+})
 server.listen(3001, () => {
   console.log('Server running on port 3001')
 })
+
